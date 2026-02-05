@@ -4,5 +4,9 @@ After completing the course in Python, I will be attempting to redo all the work
 
 ### Unsupervised Learning  
 ---
+##### Step 1  
+Download S&P 500 companies' symbols from Wikipedia.  
+##### Step 2  
+Download the S&P 500 companies' market data. For the purposes of this project, we will download the last 10 years of data.  
 
 
