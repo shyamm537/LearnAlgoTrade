@@ -1,8 +1,22 @@
 import pandas as pd
 import zipfile
 import requests
+import yfinance as yf
 
 from io import StringIO, BytesIO
+
+
+def get_data(tickers, start, end):
+
+    data = yf.download(tickers=tickers,
+                       start=start,
+                       end=end,
+                       auto_adjust=False
+                       )
+
+    return data
+
+
 
 def main():
     sp500_url = 'https://en.wikipedia.org/wiki/List_of_S%26P_500_companies'
