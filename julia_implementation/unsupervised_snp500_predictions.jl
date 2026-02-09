@@ -3,9 +3,11 @@ using HTTP
 using ZipFile
 using DataFrames
 using HTMLTables
-using PyCall
+using PythonCall
+using Dates
 
 function read_ff_data()
+
     url = "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp/F-F_Research_Data_5_Factors_2x3_CSV.zip"
     # set header
     headers = ["User-Agent" => "Mozilla/5.0"]
@@ -31,19 +33,25 @@ function read_ff_data()
 end
 
 function read_sp_data()
-    url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
-    # set header
-    headers = ["User-Agent" => "Mozilla/5.0"]
 
-    # fetch data
-    response = HTTP.get(url, headers)
-    html = String(response.body) # Vector{UInt8} object
+    if isfile("../data/sp500"*Dates.format(today(), dateformat"yyyy-mm-dd")*".csv")
+        return CSV.read("../data/sp500"*Dates.format(today(), dateformat"yyyy-mm-dd")*".csv", DataFrame)
+    else
+        
+        url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
+        # set header
+        headers = ["User-Agent" => "Mozilla/5.0"]
+
+        # fetch data
+        response = HTTP.get(url, headers)
+        html = String(response.body) # Vector{UInt8} object
     
-    # read the html table and load as a DataFrame object
-    tables = readtable(html)
-    sp500 = DataFrame(tables[1])
+        # read the html table and load as a DataFrame object
+        tables = readtable(html)
+        sp500 = DataFrame(tables[1])
 
-    return sp500
+        return sp500
+    end
 end
 
 function get_symbols_list(sp500)
@@ -67,35 +75,45 @@ function get_symbols_list(sp500)
 end
 
 function get_fin_data(symbols_list)
+    """
+    get_fin_data function downloads market data for S&P 500 companies
+    from the `yfinance` library in Python.
+    """
+    read_file = true
+    if read_file && isfile("../data/yf_data_"*Dates.format(today(), dateformat"yyyy-mm-dd")*".csv")
+        return CSV.read("../data/yf_data_"*Dates.format(today(), dateformat"yyyy-mm-dd")*".csv", DataFrame)
+    else
+        # This is not working for some reason.
+        # Starts the download but then fails all 502 after
+        # downloading about 501.
+        # Returns an empty dataframe, with all the columns tho.
+        # Weird.
 
-    # now we need to download data
+        println("downloading data")
     
-    # the distributions I found for Julia do not seem to be well-maintained.
-    # i will instead go back to downloading the data through python and then working with it on julia.
-    
-    # get_data.py has a get_data function.
-    #
-    println("importing yfinance using PyCall")
-    yf = pyimport_conda("yfinance")
-    println("Import successful.")
+        yf = pyimport("yfinance")
+        
+        pyimport("pandas")
+        yf_data = yf.download(join(symbols_list, " "), "2026-02-05", "2016-02-05", auto_adjust=false).stack()
 
-    println("Trying to download data using PyCall.")
-    yf_data = pycall(yf.download, DataFrame, symbols_list, "2026-02-05", "2016-02-05")
-
-    return yf_data
-
+        return yf_data
+    end
 end
 
 function main()
-    
     sp500 = read_sp_data()
-
     symbols_list = get_symbols_list(sp500)
 
     yf_data = get_fin_data(symbols_list)
-
-    println(yf_data)
-
+    
+    # TODO set date and tickers and index for yf_data
+    # then calculate the following metrics:
+    # garman klass volatility
+    # rsi
+    # bb low, bb medium, bb high
+    # atr
+    # macd
+    # dollar volume
 end
 
 main()

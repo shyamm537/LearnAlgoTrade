@@ -1,0 +1,2 @@
+julia -e 'using Pkg; Pkg.add(["CSV", "DataFrames", "HTTP", "ZipFile", "PythonCall", "CondaPkg"])'
+julia -e 'using CondaPkg; conda.add("yfinance")'
