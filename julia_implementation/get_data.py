@@ -2,19 +2,22 @@ import pandas as pd
 import zipfile
 import requests
 import yfinance as yf
+import datetime as dt
 
 from io import StringIO, BytesIO
 
 
 def get_data(tickers, start, end):
 
-    data = yf.download(tickers=tickers,
+    yf_data = yf.download(tickers=tickers,
                        start=start,
                        end=end,
                        auto_adjust=False
-                       )
+                       ).stack()
 
-    return data
+    yf_data.to_csv(f"../data/yf_data_{end}.csv")
+
+    return yf_data
 
 
 
@@ -44,10 +47,27 @@ def main():
     # now we have the two pandas dataframes: sp500 and ff_factors
     # we can just save this data and load it later
 
-    # save sp500
-    sp500.to_csv('../data/sp500_latest.csv')
+    # save sp500 and ff
+    sp500.to_csv(f'../data/sp500_{str(dt.date.today())}.csv')
     ff_factors.to_csv('../data/ff_factors.csv')
     print("S&P 500 and FF factors data saved in the data directory.")
+
+
+    print("Downloading and saving market data for the S&P 500 companies.")
+    end_date = str(dt.date.today())
+
+    # wikipedia data has dots in the symbols names.
+    # we'll replace the dots with dashes for yf.
+    
+    symbols_list = sp500['Symbol'].str.replace(pat='.', repl='-').unique().tolist()
+
+    get_data(
+            tickers=symbols_list,
+            start = pd.to_datetime(end_date) - pd.DateOffset(365*10),
+            end = end_date
+            )
+
+    print("ALL DONE.")
     return
 
 if __name__=="__main__":
